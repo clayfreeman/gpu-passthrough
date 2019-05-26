@@ -411,16 +411,23 @@ $ lspci -vs 01:00.1
 
 ## Imaging the GPU ROM
 
-For some graphics cards or other PCI-e devices, this step may be unnecessary.
-Some AMD GPUs can operate just fine without mapping a static ROM file; the
-virtual machine can just directly access the device ROM. Your results may vary,
-though. The primary purpose of this step is to ensure stability of the virtual
-machine.
+Before you can image the GPU ROM, you need to make sure that you've successfully
+completed the prior steps to blacklist the GPU and that you've configured your
+motherboard to use another graphics device as the primary video output. This is
+important because the GPU needs to be uninitialized when it is imaged or the ROM
+file may be garbled from previous initializations.
 
-To image the GPU ROM, first you need to make sure that you've successfully
-completed the prior steps to blacklist the GPU and that you've freshly rebooted
-the hypervisor. Next, run the following commands (replacing the example BDF
-identifier with your device's BDF identifier) to obtain an image of the GPU ROM:
+For some graphics cards or other PCI-e devices, this step may be unnecessary.
+Some GPUs can operate just fine without mapping a static ROM file; the virtual
+machine can just directly access the device ROM. Your results may vary, though.
+The primary purpose of this step is to ensure that successive virtual machine
+reboots won't require the hypervisor to be rebooted to reset the GPU's ROM to an
+uninitialized state.
+
+First, make sure that your hypervisor has been freshly rebooted so that your
+GPU's ROM is uninitialized. Next, run the following commands (replacing the
+example BDF identifier with your device's BDF identifier) to obtain an image of
+the GPU ROM:
 
 ```
 $ export PCIE_BDF_IDENT='01:00.0'
