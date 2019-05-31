@@ -100,6 +100,8 @@ This tutorial encourages feedback! If you notice any missing steps or
 information, or just find that the tutorial can be generally made better, please
 [open an issue].
 
+An example libvirt domain can be found at [resources/example-domain.xml].
+
 # Hardware Compatibility Criteria
 
 Below are some things to keep in mind while planning your build. At a minimum,
@@ -672,5 +674,6 @@ devices which are part of the CPU.
 [open an issue]: https://github.com/clayfreeman/gpu-passthrough/issues
 [passthrough devices]: #passthrough-devices
 [Red Hat]: https://access.redhat.com/documentation/en-us/red_hat_virtualization/4.2/html/installation_guide/appe-configuring_a_hypervisor_host_for_pci_passthrough
+[resources/example-domain.xml]: resources/example-domain.xml
 [ZOTAC GeForce&reg; GTX 1060 Mini]: https://www.zotac.com/us/product/graphics_card/zotac-geforce-gtx-1060-mini
 [vBIOS ROM]: https://www.techpowerup.com/vgabios/195469/zotac-gtx1060-6144-170630
