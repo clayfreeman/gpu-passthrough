@@ -38,6 +38,7 @@ Front-Cover Texts, and no Back-Cover Texts. A copy of the license can be found
 - [Preparing the Hypervisor]
   - [Blacklisting the GPU]
     - [Locating the GPU]
+    - [Create artificial hypervisor driver dependencies]
     - [Creating a stub for the GPU]
   - [Imaging the GPU ROM]
 - [Preparing the Virtual Machine]
@@ -261,9 +262,9 @@ each PCI-e device in your system:
 3. The [hardware identifier] of the given device (near the end between square
    brackets).
 
-In the case of our example GPU, we want to pass through devices `01:00.0` and
-`01:00.1`, the GPU and its associated audio controller for DisplayPort&trade;
-and HDMI&trade;.
+In the case of our example GPU, we want to pass through the devices with BDF
+identifiers `01:00.0` and `01:00.1`, the GPU and its associated audio controller
+for DisplayPort&trade; and HDMI&trade;.
 
 In the event that your target device(s) share a group with any other devices,
 you must passthrough those devices to the virtual machine as well (excluding any
@@ -279,15 +280,20 @@ hardware IDs reported by our script. For example, our list will include
 to passthrough to the virtual machine. This list of devices is referred to as
 the set of [passthrough devices].
 
-### Creating a stub for the GPU
+### Create artificial hypervisor driver dependencies
 
-Next, we need to create a stub for each passthrough device. We will need to
-create a file at `/etc/modprobe.d/01-vfio-pci.conf` to do two things:
+Before we can create a stub device on the hypervisor for your passthrough
+devices, we need to determine how the `vfio-pci` kernel module will be loaded on
+your system. Run the following command on the hypervisor:
 
-1. Create an artifical dependency on `vfio-pci` for all applicable kernel
-   modules (drivers) for our passthrough devices.
-2. Tell `vfio-pci` to create a stub for devices corresponding to a list of
-   provided hardware IDs.
+```
+grep vfio-pci /lib/modules/"$(uname -r)"/modules.builtin || echo CONFIG_VFIO_PCI=m
+```
+
+If the above command outputs `CONFIG_VFIO_PCI=m`, then we will need to create a
+file at `/etc/modprobe.d/01-vfio-pci.conf` to create an artificial dependency on
+`vfio-pci` for all applicable kernel modules (drivers) for our passthrough
+devices. Otherwise, you should skip to the next step.
 
 First, run the following command for each passthrough device, replacing the
 example BDF identifiers with your real BDF identifiers:
@@ -331,17 +337,11 @@ $ lspci -vs 01:00.1
 Create a list of modules that appear on the "Kernel modules:" line of each
 passthrough device. **For each kernel module in the list, add a line to
 `/etc/modprobe.d/01-vfio-pci.conf` using the following format** (replace
-"nouveau" with the name of the kernel module exactly as it appears):
+"nouveau" with the name of the kernel module exactly as it appears in the output
+of the above command):
 
 ```
 softdep nouveau pre: vfio-pci
-```
-
-Finally, add a line to the end of `/etc/modprobe.d/01-vfio-pci.conf` containing
-a comma-separated list of hardware IDs corresponding to each passthrough device:
-
-```
-options vfio-pci ids=10de:1c03,10de:10f1
 ```
 
 The resulting `/etc/modprobe.d/01-vfio-pci.conf` file should look similar to the
@@ -352,11 +352,29 @@ need to create dependencies):
 softdep nouveau pre: vfio-pci
 softdep nvidiafb pre: vfio-pci
 softdep snd_hda_intel pre: vfio-pci
-options vfio-pci ids=10de:1c03,10de:10f1
 ```
 
-After creating `/etc/modprobe.d/01-vfio-pci.conf`, run the following commands
-(in the listed order) and reboot the hypervisor yet again:
+### Creating a stub for the GPU
+
+Next, we need to update the kernel command line to configure `vfio-pci` to
+consume each passthrough device to prevent it from being used by the hypervisor.
+If using GRUB, add another argument to `GRUB_CMDLINE_LINUX_DEFAULT` in
+`/etc/default/grub` in the following format (where `PLACEHOLDER` should be
+replaced with a comma-separated list of hardware IDs for your passthrough
+devices):
+
+```
+vfio_pci.ids=PLACEHOLDER
+```
+
+Once you modify this variable, it should look similar to the following example:
+
+```
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on vfio_pci.ids=10de:1c03,10de:10f1"
+```
+
+Finally, run the following commands (in the listed order) and reboot the
+hypervisor yet again:
 
 ```
 $ update-initramfs -u
@@ -646,6 +664,7 @@ devices which are part of the CPU.
 [Preparing the Hypervisor]: #preparing-the-hypervisor
 [Blacklisting the GPU]: #blacklisting-the-gpu
 [Locating the GPU]: #locating-the-gpu
+[Create artificial hypervisor driver dependencies]: #create-artificial-hypervisor-driver-dependencies
 [Creating a stub for the GPU]: #creating-a-stub-for-the-gpu
 [Imaging the GPU ROM]: #imaging-the-gpu-rom
 [Preparing the Virtual Machine]: #preparing-the-virtual-machine
